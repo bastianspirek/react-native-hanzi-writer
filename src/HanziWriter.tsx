@@ -154,6 +154,12 @@ export function CharacterAnimator({
       {writer.characterClass.strokes.map((stroke, idx) => {
         const isLast = idx === writer.characterClass!.strokes.length - 1;
         const colorToUse = stroke.isInRadical ? radicalColor : color;
+        if (idx < animationState.animationStartStrokeNum) {
+          if (isLast) setTimeout(writer.animator.onAnimationComplete, animationState.delayBetweenStrokes + animationState.strokeDuration);
+          return (
+            <Path key={`o.${stroke.strokeNum}`} d={stroke.path} fill={colorToUse} />
+          );
+        }
         return (
           <StrokeAnimator
             ref={(ref) => {
@@ -161,8 +167,8 @@ export function CharacterAnimator({
               ref?.animate({
                 duration: animationState.strokeDuration,
                 delay:
-                  idx * animationState.delayBetweenStrokes +
-                  animationState.strokeDuration * idx,
+                  (idx - animationState.animationStartStrokeNum) * animationState.delayBetweenStrokes +
+                  animationState.strokeDuration * (idx - animationState.animationStartStrokeNum),
                 onComplete: isLast
                   ? writer.animator.onAnimationComplete
                   : undefined,
@@ -469,6 +475,7 @@ interface CharacterAnimatorState {
   onComplete: (() => void) | null;
   delayBetweenStrokes: number;
   strokeDuration: number;
+  animationStartStrokeNum: number;
 }
 
 const useCharacterAnimator = (params: { character: string }) => {
@@ -482,6 +489,7 @@ const useCharacterAnimator = (params: { character: string }) => {
       onComplete: null,
       delayBetweenStrokes: 1500,
       strokeDuration: 400,
+      animationStartStrokeNum: 0,
     });
   }, [params.character]);
 
@@ -498,9 +506,10 @@ const useCharacterAnimator = (params: { character: string }) => {
       strokeDuration?: number;
       /** In milliseconds. Default: 1500 */
       delayBetweenStrokes?: number;
+      animationStartStrokeNum?: number;
       onComplete?: () => void;
     }) {
-      const { strokeDuration = 400, delayBetweenStrokes = 1500 } = params || {};
+      const { strokeDuration = 400, delayBetweenStrokes = 1500, animationStartStrokeNum = 0 } = params || {};
       animationKeyRef.current = generateId();
       characterAnimatorStore.setState({
         state: 'playing',
@@ -508,6 +517,7 @@ const useCharacterAnimator = (params: { character: string }) => {
         onComplete: params?.onComplete,
         delayBetweenStrokes,
         strokeDuration,
+        animationStartStrokeNum,
       });
     },
     cancelAnimation() {
